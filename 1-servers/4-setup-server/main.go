@@ -13,9 +13,9 @@ func main() {
 	apiConfig := &routing.ApiConfig{}
 	appHandler := apiConfig.MiddlewareMetricsInc(http.StripPrefix("/app/", fileServer))
 	mux.Handle("/app/", appHandler)
-	mux.HandleFunc("/healthz", healthzHandler)
-	mux.HandleFunc("/metrics", apiConfig.HandlerMetrics)
-	mux.HandleFunc("/reset", apiConfig.HandlerReset)
+	mux.HandleFunc("GET /api/healthz", healthzHandler)
+	mux.HandleFunc("GET /api/metrics", apiConfig.HandlerMetrics)
+	mux.HandleFunc("POST /api/reset", apiConfig.HandlerReset)
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
