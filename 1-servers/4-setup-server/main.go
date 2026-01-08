@@ -3,13 +3,19 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"example.com/routing"
 )
 
 func main() {
 	mux := http.NewServeMux()
 	fileServer := http.FileServer(http.Dir("."))
-	mux.Handle("/app/", http.StripPrefix("/app/", fileServer))
+	apiConfig := &routing.ApiConfig{}
+	appHandler := apiConfig.MiddlewareMetricsInc(http.StripPrefix("/app/", fileServer))
+	mux.Handle("/app/", appHandler)
 	mux.HandleFunc("/healthz", healthzHandler)
+	mux.HandleFunc("/metrics", apiConfig.HandlerMetrics)
+	mux.HandleFunc("/reset", apiConfig.HandlerReset)
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
