@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"example.com/chirp"
 	"example.com/routing"
 )
 
@@ -16,6 +17,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", healthzHandler)
 	mux.HandleFunc("GET /admin/metrics", apiConfig.HandlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiConfig.HandlerReset)
+	mux.HandleFunc("POST /api/validate_chirp", chirp.ValidateChirpHandler)
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
