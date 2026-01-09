@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -18,20 +19,24 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		// handle error appropriately (log and exit)
-		panic(err)
+		log.Fatal(err)
 	}
 	defer db.Close()
 	dbQueries := database.New(db)
 
 	mux := http.NewServeMux()
 	fileServer := http.FileServer(http.Dir("."))
-	apiConfig := &routing.ApiConfig{}
+	apiConfig := &routing.ApiConfig{
+		Queries:  dbQueries,
+		Db:       db,
+		Platform: os.Getenv("PLATFORM"),
+	}
 	appHandler := apiConfig.MiddlewareMetricsInc(http.StripPrefix("/app/", fileServer))
 	mux.Handle("/app/", appHandler)
 	mux.HandleFunc("GET /api/healthz", healthzHandler)
 	mux.HandleFunc("GET /admin/metrics", apiConfig.HandlerMetrics)
-	mux.HandleFunc("POST /admin/reset", apiConfig.HandlerReset)
+	mux.HandleFunc("POST /admin/reset", apiConfig.HandleResetUser)
+	mux.HandleFunc("POST /api/users", apiConfig.HandleCreateUser)
 	mux.HandleFunc("POST /api/validate_chirp", chirp.ValidateChirpHandler)
 	srv := &http.Server{
 		Addr:    ":8080",

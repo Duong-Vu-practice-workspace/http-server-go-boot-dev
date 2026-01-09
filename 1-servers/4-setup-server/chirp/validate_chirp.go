@@ -29,19 +29,17 @@ func ValidateChirpHandler(w http.ResponseWriter, r *http.Request) {
 	chirp := ValidateChirp{}
 	err := decoder.Decode(&chirp)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Something went wrong")
+		RespondWithError(w, http.StatusInternalServerError, "Something went wrong")
 		return
 	}
 	if len(chirp.Body) > 140 {
-		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
+		RespondWithError(w, http.StatusBadRequest, "Chirp is too long")
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	data := strings.ToLower(chirp.Body)
 	words := strings.Split(data, " ")
 	response := ValidateChirpResponse{CleanedBody: strings.Join(filterWords(words), " ")}
-	_ = json.NewEncoder(w).Encode(response)
+	RespondWithJSON(w, http.StatusOK, response)
 }
 func filterWords(words []string) []string {
 	for i := range words {
@@ -52,12 +50,12 @@ func filterWords(words []string) []string {
 	}
 	return words
 }
-func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
+func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	_ = json.NewEncoder(w).Encode(payload)
 }
 
-func respondWithError(w http.ResponseWriter, code int, msg string) {
-	respondWithJSON(w, code, ValidateChirpError{Error: msg})
+func RespondWithError(w http.ResponseWriter, code int, msg string) {
+	RespondWithJSON(w, code, ValidateChirpError{Error: msg})
 }
