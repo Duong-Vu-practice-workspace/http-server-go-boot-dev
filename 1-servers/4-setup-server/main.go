@@ -1,14 +1,29 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
 
 	"example.com/chirp"
+	"example.com/internal/database"
 	"example.com/routing"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 func main() {
+	_ = godotenv.Load()
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		// handle error appropriately (log and exit)
+		panic(err)
+	}
+	defer db.Close()
+	dbQueries := database.New(db)
+
 	mux := http.NewServeMux()
 	fileServer := http.FileServer(http.Dir("."))
 	apiConfig := &routing.ApiConfig{}
