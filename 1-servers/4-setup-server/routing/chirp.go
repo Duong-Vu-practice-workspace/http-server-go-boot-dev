@@ -78,7 +78,7 @@ func (config *ApiConfig) HandleGetChirpById(w http.ResponseWriter, r *http.Reque
 
 	chirp, err := config.Queries.GetChirpById(r.Context(), chirpId)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "failed to get all chirps")
+		RespondWithError(w, http.StatusNotFound, "failed to get all chirps")
 	}
 	RespondWithJSON(w, http.StatusOK, mapCreateChirpToResponse(chirp))
 }

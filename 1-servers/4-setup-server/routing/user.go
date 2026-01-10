@@ -4,13 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"example.com/internal/auth"
+	"example.com/internal/database"
 )
 
 // user type
 type createUserRequest struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
-type createUserResponse struct {
+type UserResponse struct {
 	ID        string    `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -28,20 +32,22 @@ func (config *ApiConfig) HandleCreateUser(w http.ResponseWriter, r *http.Request
 		RespondWithError(w, http.StatusBadRequest, "email is required")
 		return
 	}
-
-	user, err := config.Queries.CreateUser(r.Context(), req.Email)
+	password, err := auth.HashPassword(req.Password)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "something went wrong")
+		return
+	}
+	request := database.CreateUserParams{
+		Email:          req.Email,
+		HashedPassword: password,
+	}
+	user, err := config.Queries.CreateUser(r.Context(), request)
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "failed to create user")
 		return
 	}
 
-	resp := createUserResponse{
-		ID:        user.ID.String(),
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-	}
-	RespondWithJSON(w, http.StatusCreated, resp)
+	RespondWithJSON(w, http.StatusCreated, MapUserToUserResponse(user))
 }
 
 func (config *ApiConfig) HandleResetUser(w http.ResponseWriter, r *http.Request) {
@@ -55,4 +61,12 @@ func (config *ApiConfig) HandleResetUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+func MapUserToUserResponse(user database.User) UserResponse {
+	return UserResponse{
+		ID:        user.ID.String(),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
+	}
 }
