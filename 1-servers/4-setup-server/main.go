@@ -26,9 +26,10 @@ func main() {
 	mux := http.NewServeMux()
 	fileServer := http.FileServer(http.Dir("."))
 	apiConfig := &routing.ApiConfig{
-		Queries:  dbQueries,
-		Db:       db,
-		Platform: os.Getenv("PLATFORM"),
+		Queries:   dbQueries,
+		Db:        db,
+		Platform:  os.Getenv("PLATFORM"),
+		JwtSecret: os.Getenv("JWT_SECRET"),
 	}
 	appHandler := apiConfig.MiddlewareMetricsInc(http.StripPrefix("/app/", fileServer))
 	mux.Handle("/app/", appHandler)

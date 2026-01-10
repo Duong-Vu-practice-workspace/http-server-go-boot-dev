@@ -1,21 +1,15 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
-	"github.com/alexedwards/argon2id"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
-
-func HashPassword(password string) (string, error) {
-	return argon2id.CreateHash(password, argon2id.DefaultParams)
-
-}
-func CheckPasswordHash(password, hash string) (bool, error) {
-	return argon2id.ComparePasswordAndHash(password, hash)
-}
 
 func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
 	claims := jwt.RegisteredClaims{
@@ -48,4 +42,15 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 		return uuid.Nil, err
 	}
 	return uid, nil
+}
+func GetBearerToken(headers http.Header) (string, error) {
+	bearerToken := headers.Get("Authorization")
+	if bearerToken == "" {
+		return "", errors.New("invalid header field value")
+	}
+	s := strings.Split(bearerToken, " ")
+	if len(s) != 2 || s[0] != "Bearer" {
+		return "", errors.New("invalid header field value")
+	}
+	return s[1], nil
 }

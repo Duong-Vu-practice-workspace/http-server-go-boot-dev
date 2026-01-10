@@ -11,14 +11,22 @@ import (
 
 // user type
 type createUserRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 type UserResponse struct {
 	ID        string    `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+}
+type CreateUserResponse struct {
+	ID        string    `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+	Token     string    `json:"token"`
 }
 
 // POST /api/users
@@ -47,7 +55,11 @@ func (config *ApiConfig) HandleCreateUser(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	RespondWithJSON(w, http.StatusCreated, MapUserToUserResponse(user))
+	if req.ExpiresInSeconds == 0 {
+		req.ExpiresInSeconds = 3600 //1hour
+	}
+	token, err := auth.MakeJWT(user.ID, config.JwtSecret, time.Duration(req.ExpiresInSeconds)*time.Second)
+	RespondWithJSON(w, http.StatusCreated, MapUserToCreateUserResponse(user, token))
 }
 
 func (config *ApiConfig) HandleResetUser(w http.ResponseWriter, r *http.Request) {
@@ -68,5 +80,14 @@ func MapUserToUserResponse(user database.User) UserResponse {
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email:     user.Email,
+	}
+}
+func MapUserToCreateUserResponse(user database.User, token string) CreateUserResponse {
+	return CreateUserResponse{
+		ID:        user.ID.String(),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
+		Token:     token,
 	}
 }

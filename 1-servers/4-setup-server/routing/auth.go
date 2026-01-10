@@ -14,6 +14,16 @@ type loginUser struct {
 }
 
 func (config *ApiConfig) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	userId, err := auth.ValidateJWT(token, config.JwtSecret)
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 	var req loginUser
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "invalid request body")
@@ -31,6 +41,10 @@ func (config *ApiConfig) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if !isMatch {
 		RespondWithError(w, http.StatusUnauthorized, "password not match")
+		return
+	}
+	if userId != user.ID {
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	RespondWithJSON(w, http.StatusOK, MapUserToUserResponse(user))

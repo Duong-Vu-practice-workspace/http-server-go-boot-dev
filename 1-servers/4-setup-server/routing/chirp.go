@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"example.com/internal/auth"
 	"example.com/internal/database"
 	"github.com/google/uuid"
 )
@@ -25,13 +26,27 @@ const CHIRP_ID = "chirpId"
 
 // POST /api/chirps.sql
 func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	userId, err := auth.ValidateJWT(token, config.JwtSecret)
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
 	var request createChirpRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 	body := request.Body
-	userId := request.UserId
+	bodyUserId := request.UserId
+	if bodyUserId != userId {
+		RespondWithError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
 	if body == "" {
 		RespondWithError(w, http.StatusBadRequest, "Body is required")
 		return
@@ -63,6 +78,7 @@ func (config *ApiConfig) HandleGetChirps(w http.ResponseWriter, r *http.Request)
 	result := make([]chirpResponse, len(res))
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "failed to get all chirps")
+		return
 	}
 	for i := range res {
 		result[i] = mapCreateChirpToResponse(res[i])
@@ -74,11 +90,13 @@ func (config *ApiConfig) HandleGetChirpById(w http.ResponseWriter, r *http.Reque
 	chirpId, err := uuid.Parse(chirpIdString)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "invalid chirp id")
+		return
 	}
 
 	chirp, err := config.Queries.GetChirpById(r.Context(), chirpId)
 	if err != nil {
 		RespondWithError(w, http.StatusNotFound, "failed to get all chirps")
+		return
 	}
 	RespondWithJSON(w, http.StatusOK, mapCreateChirpToResponse(chirp))
 }
