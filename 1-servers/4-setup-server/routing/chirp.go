@@ -63,3 +63,10 @@ func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Reques
 	RespondWithJSON(w, http.StatusCreated, responseChirp)
 
 }
+func (config *ApiConfig) HandleGetChirps(w http.ResponseWriter, r *http.Request) {
+	res, err := config.Queries.GetAllChirps(r.Context())
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "failed to get all chirps")
+	}
+	RespondWithJSON(w, http.StatusOK, res)
+}
