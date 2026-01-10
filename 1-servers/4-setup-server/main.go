@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 
-	"example.com/chirp"
 	"example.com/internal/database"
 	"example.com/routing"
 	"github.com/joho/godotenv"
@@ -37,7 +36,7 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiConfig.HandlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apiConfig.HandleResetUser)
 	mux.HandleFunc("POST /api/users", apiConfig.HandleCreateUser)
-	mux.HandleFunc("POST /api/validate_chirp", chirp.ValidateChirpHandler)
+	mux.HandleFunc("POST /api/chirps", apiConfig.HandleCreateChirp)
 	srv := &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
