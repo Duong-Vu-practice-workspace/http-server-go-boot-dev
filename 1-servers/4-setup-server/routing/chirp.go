@@ -13,13 +13,15 @@ type createChirpRequest struct {
 	Body   string    `json:"body"`
 	UserId uuid.UUID `json:"user_id"`
 }
-type createChirpResponse struct {
+type chirpResponse struct {
 	ID        uuid.UUID `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Body      string    `json:"body"`
 	UserID    uuid.UUID `json:"user_id"`
 }
+
+const CHIRP_ID = "chirpId"
 
 // POST /api/chirps.sql
 func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Request) {
@@ -53,20 +55,39 @@ func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	responseChirp := createChirpResponse{
+	RespondWithJSON(w, http.StatusCreated, mapCreateChirpToResponse(createdChirp))
+
+}
+func (config *ApiConfig) HandleGetChirps(w http.ResponseWriter, r *http.Request) {
+	res, err := config.Queries.GetAllChirps(r.Context())
+	result := make([]chirpResponse, len(res))
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "failed to get all chirps")
+	}
+	for i := range res {
+		result[i] = mapCreateChirpToResponse(res[i])
+	}
+	RespondWithJSON(w, http.StatusOK, result)
+}
+func (config *ApiConfig) HandleGetChirpById(w http.ResponseWriter, r *http.Request) {
+	chirpIdString := r.PathValue(CHIRP_ID)
+	chirpId, err := uuid.Parse(chirpIdString)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "invalid chirp id")
+	}
+
+	chirp, err := config.Queries.GetChirpById(r.Context(), chirpId)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "failed to get all chirps")
+	}
+	RespondWithJSON(w, http.StatusOK, mapCreateChirpToResponse(chirp))
+}
+func mapCreateChirpToResponse(createdChirp database.Chirp) chirpResponse {
+	return chirpResponse{
 		ID:        createdChirp.ID,
 		CreatedAt: createdChirp.CreatedAt,
 		UpdatedAt: createdChirp.CreatedAt,
 		Body:      createdChirp.Body,
 		UserID:    createdChirp.UserID,
 	}
-	RespondWithJSON(w, http.StatusCreated, responseChirp)
-
-}
-func (config *ApiConfig) HandleGetChirps(w http.ResponseWriter, r *http.Request) {
-	res, err := config.Queries.GetAllChirps(r.Context())
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "failed to get all chirps")
-	}
-	RespondWithJSON(w, http.StatusOK, res)
 }
