@@ -66,12 +66,12 @@ func CreateToken(userId uuid.UUID, tokenSecret string) (string, error) {
 func CheckValidToken(w http.ResponseWriter, r *http.Request, tokenSecret string) (uuid.UUID, error) {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		//RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return uuid.Nil, err
 	}
 	userId, err := auth.ValidateJWT(token, tokenSecret)
 	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		//RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return uuid.Nil, err
 	}
 	return userId, nil

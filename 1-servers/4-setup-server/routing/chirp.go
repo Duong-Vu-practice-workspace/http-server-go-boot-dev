@@ -89,10 +89,39 @@ func (config *ApiConfig) HandleGetChirpById(w http.ResponseWriter, r *http.Reque
 
 	chirp, err := config.Queries.GetChirpById(r.Context(), chirpId)
 	if err != nil {
-		RespondWithError(w, http.StatusNotFound, "failed to get all chirps")
+		RespondWithError(w, http.StatusNotFound, "failed to get chirp by Id")
 		return
 	}
 	RespondWithJSON(w, http.StatusOK, mapCreateChirpToResponse(chirp))
+}
+func (config *ApiConfig) HandleDeleteChirpById(w http.ResponseWriter, r *http.Request) {
+	userId, err := CheckValidToken(w, r, config.JwtSecret)
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	chirpIdString := r.PathValue(CHIRP_ID)
+	chirpId, err := uuid.Parse(chirpIdString)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, "invalid chirp id")
+		return
+	}
+
+	chirp, err := config.Queries.GetChirpById(r.Context(), chirpId)
+	if err != nil {
+		RespondWithError(w, http.StatusNotFound, "failed to get chirp by Id")
+		return
+	}
+	if chirp.UserID != userId {
+		RespondWithError(w, http.StatusForbidden, "you cannot delete other user's chirp")
+		return
+	}
+	_, err = config.Queries.DeleteChirpById(r.Context(), chirpId)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	ResponseWithStatus(w, http.StatusNoContent)
 }
 func mapCreateChirpToResponse(createdChirp database.Chirp) chirpResponse {
 	return chirpResponse{
