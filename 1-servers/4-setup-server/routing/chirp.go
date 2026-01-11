@@ -3,6 +3,7 @@ package routing
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"time"
 
 	"example.com/internal/database"
@@ -23,6 +24,7 @@ type chirpResponse struct {
 
 const ChirpId = "chirpId"
 const AuthorId = "author_id"
+const Sort = "sort"
 
 // POST /api/chirps.sql
 func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +72,7 @@ func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Reques
 }
 func (config *ApiConfig) HandleGetChirps(w http.ResponseWriter, r *http.Request) {
 	authorIdString := r.URL.Query().Get(AuthorId)
+	sortString := r.URL.Query().Get(Sort)
 	var err error
 	var res []database.Chirp
 
@@ -92,6 +95,13 @@ func (config *ApiConfig) HandleGetChirps(w http.ResponseWriter, r *http.Request)
 	for i := range res {
 		result[i] = mapCreateChirpToResponse(res[i])
 	}
+	sort.Slice(result, func(i, j int) bool {
+		if sortString == "desc" {
+			return result[i].CreatedAt.After(result[j].CreatedAt)
+		}
+		//default asc
+		return result[i].CreatedAt.Before(result[j].CreatedAt)
+	})
 	RespondWithJSON(w, http.StatusOK, result)
 }
 func (config *ApiConfig) HandleGetChirpById(w http.ResponseWriter, r *http.Request) {
