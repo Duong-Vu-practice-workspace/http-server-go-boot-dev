@@ -28,7 +28,7 @@ const CHIRP_ID = "chirpId"
 func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 	userId, err := auth.ValidateJWT(token, config.JwtSecret)

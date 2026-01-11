@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"example.com/internal/auth"
+	"example.com/internal/database"
+	"github.com/google/uuid"
 )
 
 type loginUser struct {
@@ -14,16 +17,6 @@ type loginUser struct {
 }
 
 func (config *ApiConfig) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		RespondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-	userId, err := auth.ValidateJWT(token, config.JwtSecret)
-	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
 	var req loginUser
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		RespondWithError(w, http.StatusBadRequest, "invalid request body")
@@ -43,9 +36,30 @@ func (config *ApiConfig) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		RespondWithError(w, http.StatusUnauthorized, "password not match")
 		return
 	}
-	if userId != user.ID {
-		RespondWithError(w, http.StatusUnauthorized, "unauthorized")
+
+	token, err := CreateToken(user.ID, config.JwtSecret)
+	var refreshToken string
+	refreshToken, err = config.Queries.GetRefreshTokenFromUser(r.Context(), user.ID)
+	if err != nil {
+		refreshToken, err = auth.MakeRefreshToken()
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "error creating refresh token")
+			return
+		}
+	}
+	params := database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: time.Now().Add(time.Minute * 60 * 24 * 60),
+	}
+	_, err = config.Queries.CreateRefreshToken(r.Context(), params)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, "error saving refresh token")
 		return
 	}
-	RespondWithJSON(w, http.StatusOK, MapUserToUserResponse(user))
+	RespondWithJSON(w, http.StatusOK, MapUserToLoginUserResponse(user, token, refreshToken))
+}
+func CreateToken(userId uuid.UUID, tokenSecret string) (string, error) {
+	expiresInSeconds := 3600 //1hour
+	return auth.MakeJWT(userId, tokenSecret, time.Duration(expiresInSeconds)*time.Second)
 }

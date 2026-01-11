@@ -26,3 +26,6 @@ func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 func RespondWithError(w http.ResponseWriter, code int, msg string) {
 	RespondWithJSON(w, code, ValidateChirpError{Error: msg})
 }
+func ResponseWithStatus(w http.ResponseWriter, code int) {
+	w.WriteHeader(code)
+}
