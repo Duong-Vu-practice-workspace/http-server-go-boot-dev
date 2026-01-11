@@ -46,20 +46,33 @@ func (config *ApiConfig) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			RespondWithError(w, http.StatusInternalServerError, "error creating refresh token")
 			return
 		}
-	}
-	params := database.CreateRefreshTokenParams{
-		Token:     refreshToken,
-		UserID:    user.ID,
-		ExpiresAt: time.Now().Add(time.Minute * 60 * 24 * 60),
-	}
-	_, err = config.Queries.CreateRefreshToken(r.Context(), params)
-	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "error saving refresh token")
-		return
+		params := database.CreateRefreshTokenParams{
+			Token:     refreshToken,
+			UserID:    user.ID,
+			ExpiresAt: time.Now().Add(time.Minute * 60 * 24 * 60),
+		}
+		_, err = config.Queries.CreateRefreshToken(r.Context(), params)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	RespondWithJSON(w, http.StatusOK, MapUserToLoginUserResponse(user, token, refreshToken))
 }
 func CreateToken(userId uuid.UUID, tokenSecret string) (string, error) {
 	expiresInSeconds := 3600 //1hour
 	return auth.MakeJWT(userId, tokenSecret, time.Duration(expiresInSeconds)*time.Second)
+}
+func CheckValidToken(w http.ResponseWriter, r *http.Request, tokenSecret string) (uuid.UUID, error) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		return uuid.Nil, err
+	}
+	userId, err := auth.ValidateJWT(token, tokenSecret)
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		return uuid.Nil, err
+	}
+	return userId, nil
 }

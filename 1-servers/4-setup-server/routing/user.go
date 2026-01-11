@@ -49,7 +49,7 @@ func (config *ApiConfig) HandleCreateUser(w http.ResponseWriter, r *http.Request
 	}
 	password, err := auth.HashPassword(req.Password)
 	if err != nil {
-		RespondWithError(w, http.StatusInternalServerError, "something went wrong")
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	request := database.CreateUserParams{
@@ -75,6 +75,49 @@ func (config *ApiConfig) HandleResetUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// PUT /api/users
+func (config *ApiConfig) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	userId, err := CheckValidToken(w, r, config.JwtSecret)
+	if err != nil {
+		RespondWithError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	var updateUserRequest createUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&updateUserRequest); err != nil {
+		RespondWithError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	user, err := config.Queries.GetUserByEmail(r.Context(), updateUserRequest.Email)
+	if err != nil {
+		RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if userId != user.ID {
+		RespondWithError(w, http.StatusUnauthorized, "cannot update different user")
+		return
+	}
+	password, err := auth.HashPassword(updateUserRequest.Password)
+	if err != nil {
+		RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	params := database.UpdateUserParams{
+		ID:             userId,
+		Email:          updateUserRequest.Email,
+		HashedPassword: password,
+	}
+	updatedUser, err := config.Queries.UpdateUser(r.Context(), params)
+	RespondWithJSON(w, http.StatusOK, MapUpdatedUserToUserResponse(updatedUser))
+}
+func MapUpdatedUserToUserResponse(user database.UpdateUserRow) UserResponse {
+	return UserResponse{
+		ID:        user.ID.String(),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
+	}
 }
 func MapUserToUserResponse(user database.User) UserResponse {
 	return UserResponse{

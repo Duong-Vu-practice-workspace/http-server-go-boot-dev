@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"example.com/internal/auth"
 	"example.com/internal/database"
 	"github.com/google/uuid"
 )
@@ -26,12 +25,7 @@ const CHIRP_ID = "chirpId"
 
 // POST /api/chirps.sql
 func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Request) {
-	token, err := auth.GetBearerToken(r.Header)
-	if err != nil {
-		RespondWithError(w, http.StatusUnauthorized, err.Error())
-		return
-	}
-	userId, err := auth.ValidateJWT(token, config.JwtSecret)
+	userId, err := CheckValidToken(w, r, config.JwtSecret)
 	if err != nil {
 		RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return
