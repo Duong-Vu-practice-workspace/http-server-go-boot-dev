@@ -21,7 +21,7 @@ type chirpResponse struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
-const CHIRP_ID = "chirpId"
+const ChirpId = "chirpId"
 
 // POST /api/chirps.sql
 func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +80,7 @@ func (config *ApiConfig) HandleGetChirps(w http.ResponseWriter, r *http.Request)
 	RespondWithJSON(w, http.StatusOK, result)
 }
 func (config *ApiConfig) HandleGetChirpById(w http.ResponseWriter, r *http.Request) {
-	chirpIdString := r.PathValue(CHIRP_ID)
+	chirpIdString := r.PathValue(ChirpId)
 	chirpId, err := uuid.Parse(chirpIdString)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "invalid chirp id")
@@ -100,7 +100,7 @@ func (config *ApiConfig) HandleDeleteChirpById(w http.ResponseWriter, r *http.Re
 		RespondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-	chirpIdString := r.PathValue(CHIRP_ID)
+	chirpIdString := r.PathValue(ChirpId)
 	chirpId, err := uuid.Parse(chirpIdString)
 	if err != nil {
 		RespondWithError(w, http.StatusBadRequest, "invalid chirp id")
