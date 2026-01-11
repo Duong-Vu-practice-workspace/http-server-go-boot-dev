@@ -22,6 +22,7 @@ type chirpResponse struct {
 }
 
 const ChirpId = "chirpId"
+const AuthorId = "author_id"
 
 // POST /api/chirps.sql
 func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Request) {
@@ -68,12 +69,26 @@ func (config *ApiConfig) HandleCreateChirp(w http.ResponseWriter, r *http.Reques
 
 }
 func (config *ApiConfig) HandleGetChirps(w http.ResponseWriter, r *http.Request) {
-	res, err := config.Queries.GetAllChirps(r.Context())
-	result := make([]chirpResponse, len(res))
+	authorIdString := r.URL.Query().Get(AuthorId)
+	var err error
+	var res []database.Chirp
+
+	if authorIdString == "" {
+		res, err = config.Queries.GetAllChirps(r.Context())
+	} else {
+		authorId, err := uuid.Parse(authorIdString)
+		if err != nil {
+			RespondWithError(w, http.StatusBadRequest, "invalid author id")
+			return
+		}
+		res, err = config.Queries.GetAllChirpsByAuthorSortCreatedAtAscending(r.Context(), authorId)
+	}
 	if err != nil {
 		RespondWithError(w, http.StatusInternalServerError, "failed to get all chirps")
 		return
 	}
+	result := make([]chirpResponse, len(res))
+
 	for i := range res {
 		result[i] = mapCreateChirpToResponse(res[i])
 	}
