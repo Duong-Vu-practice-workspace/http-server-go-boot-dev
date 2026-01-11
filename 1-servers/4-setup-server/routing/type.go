@@ -15,6 +15,7 @@ type ApiConfig struct {
 	Queries        *database.Queries
 	Platform       string
 	JwtSecret      string
+	PolkaKey       string
 }
 
 func RespondWithJSON(w http.ResponseWriter, code int, payload interface{}) {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"example.com/internal/auth"
 	"example.com/internal/database"
 	"github.com/google/uuid"
 )
@@ -19,6 +20,15 @@ type UserUpgradeMembershipWebhook struct {
 const UpgradeMembershipEvent = "user.upgraded"
 
 func (config *ApiConfig) HandlePolkaWebHookMembership(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		ResponseWithStatus(w, http.StatusUnauthorized)
+		return
+	}
+	if apiKey != config.PolkaKey {
+		ResponseWithStatus(w, http.StatusUnauthorized)
+		return
+	}
 	var request UserUpgradeMembershipWebhook
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		ResponseWithStatus(w, http.StatusBadRequest)
@@ -32,7 +42,7 @@ func (config *ApiConfig) HandlePolkaWebHookMembership(w http.ResponseWriter, r *
 		ID:          request.Data.UserId,
 		IsChirpyRed: true,
 	}
-	_, err := config.Queries.UpdateUserMemberShip(r.Context(), params)
+	_, err = config.Queries.UpdateUserMemberShip(r.Context(), params)
 	if err != nil {
 		ResponseWithStatus(w, http.StatusNotFound)
 		return

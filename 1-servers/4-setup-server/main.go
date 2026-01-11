@@ -30,6 +30,7 @@ func main() {
 		Db:        db,
 		Platform:  os.Getenv("PLATFORM"),
 		JwtSecret: os.Getenv("JWT_SECRET"),
+		PolkaKey:  os.Getenv("POLKA_KEY"),
 	}
 	appHandler := apiConfig.MiddlewareMetricsInc(http.StripPrefix("/app/", fileServer))
 	mux.Handle("/app/", appHandler)
